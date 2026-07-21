@@ -1,0 +1,88 @@
+# -----------------------------
+# OS / file explorer artifacts
+# -----------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+
+# -----------------------------
+# Editor / IDE
+# -----------------------------
+.vscode/
+.idea/
+*.code-workspace
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+*~
+
+# -----------------------------
+# PowerShell / scripting caches
+# -----------------------------
+*.ps1xml
+*.clixml
+*.history
+PSReadLine_history.txt
+
+# -----------------------------
+# Logs / output / temp
+# -----------------------------
+*.log
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.cache
+logs/
+temp/
+tmp/
+out/
+output/
+reports/
+exports/
+
+# -----------------------------
+# Secrets / credentials / certs
+# Keep examples tracked with *.example.* or *.sample.*
+# -----------------------------
+.env
+.env.*
+*.secret
+*.secrets
+*.key
+*.pfx
+*.p12
+*.pem
+*.cer
+*.crt
+*.csr
+*.jwk
+credentials.json
+secrets.json
+token.json
+auth.json
+
+# -----------------------------
+# Local data dumps often produced by MSP tooling
+# -----------------------------
+data/
+dumps/
+tenant-exports/
+audit-output/
+inventory-output/
+
+# -----------------------------
+# Keep intentional templates/examples
+# -----------------------------
+!*.example.csv
+!*.example.json
+!*.example.xml
+!*.sample.csv
+!*.sample.json
+!*.sample.xml
