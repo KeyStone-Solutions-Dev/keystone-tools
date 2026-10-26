@@ -8,6 +8,8 @@
     writes a single console report showing each admin role and the users that hold it.
     Roles with no assignments are omitted. Group- and service-principal-based assignments
     are labelled by principal type so they are visible but distinguishable from users.
+    Each user and service principal is reported with its account status (Enabled/Disabled);
+    disabled accounts are highlighted in red. Groups show N/A.
 
     Active (permanent) assignments are always included. Use -IncludeEligible to also
     include PIM eligible assignments (requires Entra ID P2 / Privileged Identity Management).
@@ -43,6 +45,7 @@ param(
 
 $requiredCommands = @(
     "Connect-MgGraph",
+    "Invoke-MgGraphRequest",
     "Get-MgRoleManagementDirectoryRoleAssignment",
     "Get-MgRoleManagementDirectoryRoleDefinition"
 )
@@ -89,6 +92,38 @@ function Resolve-PrincipalInfo {
     }
 }
 
+# accountEnabled is not returned on the expanded principal, so look it up once per principal.
+$accountStatusCache = @{}
+
+function Get-PrincipalAccountStatus {
+    param(
+        [Parameter(Mandatory)]
+        $PrincipalInfo
+    )
+
+    $resource = switch ($PrincipalInfo.PrincipalType) {
+        'User'             { 'users' }
+        'ServicePrincipal' { 'servicePrincipals' }
+        default            { return 'N/A' }
+    }
+
+    if ($accountStatusCache.ContainsKey($PrincipalInfo.Id)) {
+        return $accountStatusCache[$PrincipalInfo.Id]
+    }
+
+    try {
+        $result = Invoke-MgGraphRequest -Method GET -Uri "v1.0/$resource/$($PrincipalInfo.Id)?`$select=accountEnabled" -ErrorAction Stop
+        $status = if ($result['accountEnabled']) { 'Enabled' } else { 'Disabled' }
+    }
+    catch {
+        Write-Warning "Unable to read account status for $($PrincipalInfo.DisplayName) ($($PrincipalInfo.Id))."
+        $status = 'Unknown'
+    }
+
+    $accountStatusCache[$PrincipalInfo.Id] = $status
+    $status
+}
+
 Connect-MgGraph -Scopes @(
     "RoleManagement.Read.Directory",
     "User.Read.All",
@@ -122,6 +157,7 @@ try {
             PrincipalType     = $principal.PrincipalType
             DisplayName       = $principal.DisplayName
             UserPrincipalName = $principal.UserPrincipalName
+            AccountStatus     = Get-PrincipalAccountStatus -PrincipalInfo $principal
         })
     }
 
@@ -142,6 +178,7 @@ try {
                     PrincipalType     = $principal.PrincipalType
                     DisplayName       = $principal.DisplayName
                     UserPrincipalName = $principal.UserPrincipalName
+                    AccountStatus     = Get-PrincipalAccountStatus -PrincipalInfo $principal
                 })
             }
         }
@@ -172,7 +209,8 @@ try {
 
         foreach ($member in $roleMembers) {
             $identity = if ($member.UserPrincipalName) { $member.UserPrincipalName } else { $member.DisplayName }
-            Write-Host ("    - [{0}] {1}  {2}" -f $member.PrincipalType, $member.DisplayName, $identity)
+            $statusColor = if ($member.AccountStatus -eq 'Disabled') { 'Red' } else { 'Gray' }
+            Write-Host ("    - [{0}] {1}  {2}  [{3}]" -f $member.PrincipalType, $member.DisplayName, $identity, $member.AccountStatus) -ForegroundColor $statusColor
         }
     }
 
